@@ -19,8 +19,7 @@ char* readn(int sockfd, char* bytebuffer, int datalen) {
 }
 
 int main(int argc, char *argv[]) {
-    argv[1] = "localhost";
-    argv[2] = "5001";
+
     int sockfd;
     int n;
     uint16_t portno;
