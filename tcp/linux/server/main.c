@@ -7,6 +7,17 @@
 
 #include <string.h>
 
+char* readn(int sockfd, char* bytebuffer, int datalen) {
+    for (int i = 0; i < datalen; i++) {
+        if (read(sockfd, bytebuffer + i, 1) < 0) {
+            perror("ERROR reading from socket");
+            exit(1);
+        }
+        
+    }
+    return bytebuffer;
+}
+
 int main(int argc, char *argv[]) {
     int sockfd, newsockfd;
     uint16_t portno;
@@ -15,6 +26,12 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in serv_addr, cli_addr;
     ssize_t n;
 
+    if (argc < 2)
+    {
+        fprintf(stderr, "ERROR, no port provided\n");
+        exit(0);
+    }
+    
     /* First call to socket() function */
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -47,6 +64,7 @@ int main(int argc, char *argv[]) {
     /* Accept actual connection from the client */
     newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 
+    
     if (newsockfd < 0) {
         perror("ERROR on accept");
         exit(1);
@@ -54,13 +72,9 @@ int main(int argc, char *argv[]) {
 
     /* If connection is established then start communicating */
     bzero(buffer, 256);
-    n = read(newsockfd, buffer, 255); // recv on Windows
 
-    if (n < 0) {
-        perror("ERROR reading from socket");
-        exit(1);
-    }
-
+    readn (newsockfd, p, 255);
+    
     printf("Here is the message: %s\n", buffer);
 
     /* Write a response to the client */
@@ -70,6 +84,9 @@ int main(int argc, char *argv[]) {
         perror("ERROR writing to socket");
         exit(1);
     }
+    
+    shutdown(sockfd, SHUT_RDWR);
+    close(sockfd);
 
     return 0;
 }
