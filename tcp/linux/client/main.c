@@ -13,7 +13,6 @@ char* readn(int sockfd, char* bytebuffer, int datalen) {
             perror("ERROR reading from socket");
             exit(1);
         }
-        
     }
     return bytebuffer;
 }
@@ -27,8 +26,6 @@ int main(int argc, char *argv[]) {
     struct hostent *server;
     
     char buffer[256];
-    
-    
     
     
     if (argc < 3) {
