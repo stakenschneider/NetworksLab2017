@@ -11,7 +11,7 @@
 #define PORT 5001
 #define BUF_SIZE 1000
 #define TITLES "topics.txt"
-#define RECV "Receive call failed"
+#define REC "Receive call failed"
 
 void *ClientHandler(void *socket);
 void *ServerHandler();
@@ -19,13 +19,16 @@ void *ServerHandler();
 void SendErrorToClient(int socket);
 void SentErrServer(char *s);
 
-void AddNews(char *topic, char *text);
+void AddNews(char *topic, char *caption, char *text);
 int DeleteClient(int number);
 
 int *FindBySocket(int socket);
 
 void ReadTopics();
-int ReadText(char filename[], int socket);
+int ReadText(char buf[], int socket);
+int ReadCaption(char buf[], int socket);
+
+int ReadNumCap(char cap[]);
 
 void SendToClient(int socket, char *message);
 
@@ -34,6 +37,7 @@ void EndTrade();
 int s;
 int threads = -1;
 char topics[BUF_SIZE];
+char caption[BUF_SIZE];
 char kill_command[] = "kill";
 char shutdown_command[] = "shutdown";
 
@@ -103,8 +107,8 @@ void *ServerHandler() {
     char text[40];
 
     while (1) {
-        gets(text);
 
+        fgets(text, BUF_SIZE, stdin);
 
         if (strstr(kill_command, text) != NULL) {
 
@@ -133,15 +137,18 @@ void *ClientHandler(void *socket) {
     int rc;
     char buf[BUF_SIZE];
     char pick = '0';
+
     while (1) {
         switch (pick) {
             case '0': {
-                SendToClient((int) socket, "1.See news\n"
-                                     "2.New news\n"
-                                     "3.Exit\n");
+                SendToClient((int) socket, "\n_______٩(ఠ益ఠ)۶_______\n"
+                        "1. посмотреть список тем\n"
+                        "2. добавить новость\n"
+                        "3. выход\n"
+                        "_______٩(ఠ益ఠ)۶_______\n");
                 rc = recv((int) socket, buf, BUF_SIZE, 0);
                 if (rc <= 0)
-                    SentErrServer(RECV);
+                    SentErrServer(REC);
                 pick = buf[0];
                 break;
             }
@@ -149,28 +156,55 @@ void *ClientHandler(void *socket) {
             case '1': {
                 memset(buf, 0, BUF_SIZE);
 
-                char out[BUF_SIZE] = "'0' для перехода в главное меню\n";
+                char out[BUF_SIZE] = "\n_______٩(ఠ益ఠ)۶_______\n";
                 strcat(out, topics);
+                strcat(out, "_______٩(ఠ益ఠ)۶_______\n");
                 SendToClient((int) socket, out);
 
                 rc = recv((int) socket, buf, BUF_SIZE, 0);
+                char pop[BUF_SIZE] = "";
+                strcat(pop, buf);
 
                 if (rc <= 0)
-                    SentErrServer(RECV);
+                    SentErrServer(REC);
+                if (buf[0] == '0') {
+                    pick = '0';
+                    break;
+                }
+                if (ReadCaption(buf, (int) socket) == 1)
+                    SendToClient((int) socket, "\n!ERROR! такой темы нет !ERROR!");
 
+                rc = recv((int) socket, buf, BUF_SIZE, 0);
+                if (rc <= 0)
+                    SentErrServer(REC);
                 if (buf[0] == '0') {
                     pick = '0';
                     break;
                 }
 
-                char filename[] = "";
-                strcat(filename, buf);
-                strcat(filename, ".txt");
+                strcat(pop, "_");
+                strcat(pop, buf);
 
-                if (ReadText(filename, (int) socket) == 1) {
+                if (ReadText(pop, (int) socket) == 1)
+                    SendToClient((int) socket, "\n!ERROR! такой новости нет !ERROR!");
+                else
+                    SendToClient((int) socket, "для выхода в главное меню нажмите '0'");
+
+
+                rc = recv((int) socket, buf, BUF_SIZE, 0);
+                if (buf[0] == '0') {
                     pick = '0';
                     break;
                 }
+                pick = '0';
+                break;
+//                } else{
+//                    if (buf[0] == '0') {
+//                        pick = '0';
+//                        break;
+//                    }
+//                }
+//                break;
             }
 
             case '2': {
@@ -178,17 +212,24 @@ void *ClientHandler(void *socket) {
                 char topic[BUF_SIZE];
                 char text[BUF_SIZE];
 
-                SendToClient((int) socket, "write topic:");
+                SendToClient((int) socket, "\nназвание темы:");
                 rc = recv((int) socket, topic, BUF_SIZE, 0);
                 if (rc <= 0)
-                    SentErrServer(RECV);
+                    SentErrServer(REC);
 
-                SendToClient((int) socket, "write news:");
+                SendToClient((int) socket, "\nзаголовок новости:");
+                rc = recv((int) socket, caption, BUF_SIZE, 0);
+                if (rc <= 0)
+                    SentErrServer(REC);
+
+
+                SendToClient((int) socket, "\nтекст новости:");
                 rc = recv((int) socket, text, BUF_SIZE, 0);
                 if (rc <= 0)
-                    SentErrServer(RECV);
+                    SentErrServer(REC);
 
-                AddNews(topic, text);
+
+                AddNews(topic, caption , text);
                 pick = '0';
                 break;
 
@@ -243,45 +284,103 @@ void ReadTopics() {
     char *line = NULL;
     size_t len = 0;
     ssize_t read;
+
     FILE *fp;
     fp = fopen(TITLES, "r");
     if (fp == NULL) {
         EndTrade();
         exit(1);
     }
-    while ((read = getline(&line, &len, fp)) != -1) {
-        //        for (int i = 0 ; i < strlen(topics); i++)
-//        if (strcmp (line, topics[i])!=0)
+
+    int q = 0;
+    while ((read = getline(&line, &len, fp)) != -1){
+        q++;
+        //TODO: int to char?
+//        strcat(topics, q + ". ");
         strcat(topics, line);
     }
+
     fclose(fp);
 }
 
 
-int ReadText(char filename[], int socket) {
+int ReadText(char buf[], int socket) {
+    char file[BUF_SIZE] = "";
+    strcat(file, buf);
+    strcat(file, ".txt");
 
+    char out[BUF_SIZE] = "\n";
+    char *line = NULL;
     size_t len = 0;
     ssize_t read;
-    char *line = NULL;
-    char out[BUF_SIZE] = "";
-    int rc;
 
     FILE *fp;
-    fp = fopen(filename, "r");
 
-    if (fp == NULL) {
-        EndTrade();
-        exit(1);
-    }
+    if ((fp = fopen(file, "r")) == NULL)
+        return 1;
 
     while ((read = getline(&line, &len, fp)) != -1) {
         strcat(out, line);
     }
     fclose(fp);
-    strcat(out, "0 to back");
     SendToClient(socket, out);
     return 0;
 }
+
+int ReadCaption(char buf[], int socket) {
+    char file[BUF_SIZE] = "";
+    strcat(file, buf);
+    strcat(file, ".txt");
+
+    char out[BUF_SIZE] = "\n";
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    FILE *fp;
+
+    if ((fp = fopen(file, "r")) == NULL)
+        return 1;
+
+    int q = 0;
+    while ((read = getline(&line, &len, fp)) != -1) {
+        q++;
+        //TODO: int to char?
+//        strcat(out, q + ". ");
+        strcat(out, line);
+    }
+    fclose(fp);
+    SendToClient(socket, out);
+    return 0;
+}
+
+
+int ReadNumCap(char cap[]) {
+    char file[BUF_SIZE] = "";
+    strcat(file, cap);
+    strcat(file, ".txt");
+
+    char out[BUF_SIZE] = "\n";
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    int num = 0;
+
+    FILE *fp;
+
+    if ((fp = fopen(file, "r")) == NULL)
+        return 1;
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+        num++;
+    }
+
+    fclose(fp);
+    SendToClient(socket, out);
+    return num;
+}
+
 
 
 int *FindBySocket(int socket) {
@@ -299,7 +398,7 @@ void SentErrServer(char *s) {
     exit(1);
 }
 
-void AddNews(char *topic, char *text) {
+void AddNews(char *topic, char *caption, char *text) {
 
     char file_name[BUF_SIZE] = "";
     strcat(file_name, topic);
@@ -311,9 +410,6 @@ void AddNews(char *topic, char *text) {
         EndTrade();
         exit(1);
     }
-    
-    //TODO: if topic == name -> 0
-
     fprintf(fp1, "%s\n", topic);
     fclose(fp1);
     ReadTopics();
@@ -324,8 +420,27 @@ void AddNews(char *topic, char *text) {
         EndTrade();
         exit(1);
     }
-    fprintf(fp2, "\n%s\n", text);
+    fprintf(fp2, "%s\n", text);
     fclose(fp2);
+
+    int nn = ReadNumCap(topic);
+    char file_name_2[BUF_SIZE] = "";
+    strcat(file_name_2, topic);
+    strcat(file_name_2, "_");
+
+    //TODO: int to char?
+    strcat(file_name_2, nn);
+    strcat(file_name_2, ".txt");
+
+
+    FILE *fp3;
+    fp3 = fopen(file_name, "a");
+    if (fp3 == NULL) {
+        EndTrade();
+        exit(1);
+    }
+    fprintf(fp3, "%s\n", caption);
+    fclose(fp3);
 }
 
 
