@@ -5,7 +5,6 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <arpa/inet.h>
 
 #define PORT 5001
@@ -32,9 +31,8 @@ int ReadNumCap(char cap[]);
 
 void SendToClient(int socket, char *message);
 
-void EndTrade();
-
 int s;
+char chch[BUF_SIZE];
 int threads = -1;
 char topics[BUF_SIZE];
 char caption[BUF_SIZE];
@@ -50,7 +48,6 @@ int main(void) {
 
     users = (char *) malloc(sizeof(char));
     if (users == NULL) {
-        EndTrade();
         exit(1);
     }
 
@@ -116,10 +113,6 @@ void *ServerHandler() {
                 printf("%s was killed\n", text);
             else
                 printf("wrong command. Please try again\n");
-        }
-
-        if (strstr(shutdown_command, text) != NULL) {
-            EndTrade();
         }
     }
 }
@@ -198,13 +191,6 @@ void *ClientHandler(void *socket) {
                 }
                 pick = '0';
                 break;
-//                } else{
-//                    if (buf[0] == '0') {
-//                        pick = '0';
-//                        break;
-//                    }
-//                }
-//                break;
             }
 
             case '2': {
@@ -287,16 +273,15 @@ void ReadTopics() {
 
     FILE *fp;
     fp = fopen(TITLES, "r");
-    if (fp == NULL) {
-        EndTrade();
+    if (fp == NULL)
         exit(1);
-    }
 
     int q = 0;
     while ((read = getline(&line, &len, fp)) != -1){
         q++;
-        //TODO: int to char?
-//        strcat(topics, q + ". ");
+        sprintf(chch, "%d", q);
+        strncat(topics, chch, strlen(chch));
+        strcat(topics, ". ");
         strcat(topics, line);
     }
 
@@ -319,9 +304,9 @@ int ReadText(char buf[], int socket) {
     if ((fp = fopen(file, "r")) == NULL)
         return 1;
 
-    while ((read = getline(&line, &len, fp)) != -1) {
+    while ((read = getline(&line, &len, fp)) != -1)
         strcat(out, line);
-    }
+
     fclose(fp);
     SendToClient(socket, out);
     return 0;
@@ -345,8 +330,9 @@ int ReadCaption(char buf[], int socket) {
     int q = 0;
     while ((read = getline(&line, &len, fp)) != -1) {
         q++;
-        //TODO: int to char?
-//        strcat(out, q + ". ");
+        sprintf(chch, "%d", q);
+        strncat(out, chch, strlen(chch));
+        strcat(out, ". ");
         strcat(out, line);
     }
     fclose(fp);
@@ -372,9 +358,9 @@ int ReadNumCap(char cap[]) {
     if ((fp = fopen(file, "r")) == NULL)
         return 1;
 
-    while ((read = getline(&line, &len, fp)) != -1) {
+    while ((read = getline(&line, &len, fp)) != -1)
         num++;
-    }
+
 
     fclose(fp);
     SendToClient(socket, out);
@@ -394,60 +380,51 @@ int *FindBySocket(int socket) {
 
 void SentErrServer(char *s) {
     perror(s);
-    EndTrade();
     exit(1);
 }
 
 void AddNews(char *topic, char *caption, char *text) {
 
-    char file_name[BUF_SIZE] = "";
-    strcat(file_name, topic);
-    strcat(file_name, ".txt");
-
     FILE *fp1;
     fp1 = fopen(TITLES, "a");
-    if (fp1 == NULL) {
-        EndTrade();
+    if (fp1 == NULL)
         exit(1);
-    }
+
     fprintf(fp1, "%s\n", topic);
     fclose(fp1);
     ReadTopics();
 
+
+
+    char file_name[BUF_SIZE] = "";
+    strcat(file_name, topic);
+    strcat(file_name, ".txt");
+
     FILE *fp2;
     fp2 = fopen(file_name, "a");
-    if (fp2 == NULL) {
-        EndTrade();
+    if (fp2 == NULL)
         exit(1);
-    }
-    fprintf(fp2, "%s\n", text);
-    fclose(fp2);
 
+    fprintf(fp2, "%s\n", caption);
+    fclose(fp2);
+    
     int nn = ReadNumCap(topic);
+
     char file_name_2[BUF_SIZE] = "";
     strcat(file_name_2, topic);
     strcat(file_name_2, "_");
+    sprintf(chch, "%d", nn);
+    strncat(file_name_2, chch, strlen(chch));
 
-    //TODO: int to char?
-    strcat(file_name_2, nn);
     strcat(file_name_2, ".txt");
 
 
     FILE *fp3;
-    fp3 = fopen(file_name, "a");
-    if (fp3 == NULL) {
-        EndTrade();
+    fp3 = fopen(file_name_2, "a");
+    if (fp3 == NULL)
         exit(1);
-    }
-    fprintf(fp3, "%s\n", caption);
+
+    fprintf(fp3, "%s\n", text);
     fclose(fp3);
 }
 
-
-void EndTrade() {
-    int i = 0;
-    for (i; i <= threads; i++) {
-        shutdown(users[i].s1, 2);
-        close(users[i].s1);
-    }
-}
