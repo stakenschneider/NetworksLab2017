@@ -606,3 +606,7 @@ news/tcp/linux/server/cmake-build-debug/server.cbp
 news/tcp/linux/server/cmake-build-debug/server
 news/tcp/linux/client/cmake-build-debug/mycl.cbp
 news/tcp/linux/client/cmake-build-debug/mycl
+news/UDP/server/cmake-build-debug/server
+*.cbp
+news/UDP/client/cmake-build-debug/client
+.DS_Store

@@ -17,27 +17,19 @@ void *ServerHandler();
 
 void SendErrorToClient(int socket);
 void SentErrServer(char *s);
-
-void AddNews(char *topic, char *caption, char *text);
 int DeleteClient(int number);
-
 int *FindBySocket(int socket);
 
-void ReadTopics();
-int ReadText(char buf[], int socket);
-int ReadCaption(char buf[], int socket);
+void add_news(char *topic, char *caption, char *text);
+void list_topics();
+int list_caption(char buf[], int socket);
+int show_text(char buf[], int socket);
+int amt_caption(char cap[]);
+void to_client(int socket, char *message);
 
-int ReadNumCap(char cap[]);
-
-void SendToClient(int socket, char *message);
-
-int s;
-char chch[BUF_SIZE];
-int threads = -1;
-char topics[BUF_SIZE];
-char caption[BUF_SIZE];
-char kill_command[] = "kill";
-char shutdown_command[] = "shutdown";
+int s, threads = -1;
+char topics[BUF_SIZE], caption[BUF_SIZE], chch[BUF_SIZE];
+char kill_command[] = "kill", shutdown_command[] = "shutdown";
 
 struct clients {
     int s1;
@@ -47,9 +39,8 @@ struct clients {
 int main(void) {
 
     users = (char *) malloc(sizeof(char));
-    if (users == NULL) {
+    if (users == NULL)
         exit(1);
-    }
 
     printf("server trade is working\n");
 
@@ -78,7 +69,7 @@ int main(void) {
     rc = listen(s, 5);
     if (rc)
         SentErrServer("listen call failed");
-    ReadTopics();
+    list_topics();
 
     while (1) {
 
@@ -118,7 +109,7 @@ void *ServerHandler() {
 }
 
 
-void SendToClient(int socket, char *message) {
+void to_client(int socket, char *message) {
     int rc;
     rc = send(socket, message, BUF_SIZE, 0);
     if (rc <= 0)
@@ -134,10 +125,10 @@ void *ClientHandler(void *socket) {
     while (1) {
         switch (pick) {
             case '0': {
-                SendToClient((int) socket, "\n_______٩(ఠ益ఠ)۶_______\n"
-                        "1. посмотреть список тем\n"
-                        "2. добавить новость\n"
-                        "3. выход\n"
+                to_client((int) socket, "\n_______٩(ఠ益ఠ)۶_______\n"
+                        "1. view list of topics\n"
+                        "2. add news\n"
+                        "3. exit\n"
                         "_______٩(ఠ益ఠ)۶_______\n");
                 rc = recv((int) socket, buf, BUF_SIZE, 0);
                 if (rc <= 0)
@@ -152,7 +143,7 @@ void *ClientHandler(void *socket) {
                 char out[BUF_SIZE] = "\n_______٩(ఠ益ఠ)۶_______\n";
                 strcat(out, topics);
                 strcat(out, "_______٩(ఠ益ఠ)۶_______\n");
-                SendToClient((int) socket, out);
+                to_client((int) socket, out);
 
                 rc = recv((int) socket, buf, BUF_SIZE, 0);
                 char pop[BUF_SIZE] = "";
@@ -164,8 +155,8 @@ void *ClientHandler(void *socket) {
                     pick = '0';
                     break;
                 }
-                if (ReadCaption(buf, (int) socket) == 1)
-                    SendToClient((int) socket, "\n!ERROR! такой темы нет !ERROR!");
+                if (list_caption(buf, (int) socket) == 1)
+                    to_client((int) socket, "\n!ERROR! такой темы нет !ERROR!");
 
                 rc = recv((int) socket, buf, BUF_SIZE, 0);
                 if (rc <= 0)
@@ -178,10 +169,10 @@ void *ClientHandler(void *socket) {
                 strcat(pop, "_");
                 strcat(pop, buf);
 
-                if (ReadText(pop, (int) socket) == 1)
-                    SendToClient((int) socket, "\n!ERROR! такой новости нет !ERROR!");
+                if (show_text(pop, (int) socket) == 1)
+                    to_client((int) socket, "\n!ERROR! такой новости нет !ERROR!");
                 else
-                    SendToClient((int) socket, "для выхода в главное меню нажмите '0'");
+                    to_client((int) socket, "для выхода в главное меню нажмите '0'");
 
 
                 rc = recv((int) socket, buf, BUF_SIZE, 0);
@@ -198,24 +189,24 @@ void *ClientHandler(void *socket) {
                 char topic[BUF_SIZE];
                 char text[BUF_SIZE];
 
-                SendToClient((int) socket, "\nназвание темы:");
+                to_client((int) socket, "\nназвание темы:");
                 rc = recv((int) socket, topic, BUF_SIZE, 0);
                 if (rc <= 0)
                     SentErrServer(REC);
 
-                SendToClient((int) socket, "\nзаголовок новости:");
+                to_client((int) socket, "\nзаголовок новости:");
                 rc = recv((int) socket, caption, BUF_SIZE, 0);
                 if (rc <= 0)
                     SentErrServer(REC);
 
 
-                SendToClient((int) socket, "\nтекст новости:");
+                to_client((int) socket, "\nтекст новости:");
                 rc = recv((int) socket, text, BUF_SIZE, 0);
                 if (rc <= 0)
                     SentErrServer(REC);
 
 
-                AddNews(topic, caption , text);
+                add_news(topic, caption , text);
                 pick = '0';
                 break;
 
@@ -224,7 +215,7 @@ void *ClientHandler(void *socket) {
             case '3': {
                 printf("%d\n", (int) socket);
 
-                SendToClient((int) socket, "#");
+                to_client((int) socket, "#");
                 DeleteClient(FindBySocket((int) socket));
                 pthread_exit(NULL);
             }
@@ -251,7 +242,7 @@ int DeleteClient(int number) {
 
     if (number != -1) {
 
-        SendToClient(users[number].s1, "#");
+        to_client(users[number].s1, "#");
 
         if (number != threads) {
             users[number] = users[threads];
@@ -265,7 +256,7 @@ int DeleteClient(int number) {
 }
 
 
-void ReadTopics() {
+void list_topics() {
     *topics = NULL;
     char *line = NULL;
     size_t len = 0;
@@ -289,7 +280,7 @@ void ReadTopics() {
 }
 
 
-int ReadText(char buf[], int socket) {
+int show_text(char buf[], int socket) {
     char file[BUF_SIZE] = "";
     strcat(file, buf);
     strcat(file, ".txt");
@@ -308,11 +299,11 @@ int ReadText(char buf[], int socket) {
         strcat(out, line);
 
     fclose(fp);
-    SendToClient(socket, out);
+    to_client(socket, out);
     return 0;
 }
 
-int ReadCaption(char buf[], int socket) {
+int list_caption(char buf[], int socket) {
     char file[BUF_SIZE] = "";
     strcat(file, buf);
     strcat(file, ".txt");
@@ -336,12 +327,12 @@ int ReadCaption(char buf[], int socket) {
         strcat(out, line);
     }
     fclose(fp);
-    SendToClient(socket, out);
+    to_client(socket, out);
     return 0;
 }
 
 
-int ReadNumCap(char cap[]) {
+int amt_caption(char cap[]) {
     char file[BUF_SIZE] = "";
     strcat(file, cap);
     strcat(file, ".txt");
@@ -361,9 +352,8 @@ int ReadNumCap(char cap[]) {
     while ((read = getline(&line, &len, fp)) != -1)
         num++;
 
-
     fclose(fp);
-    SendToClient(socket, out);
+    to_client(socket, out);
     return num;
 }
 
@@ -383,7 +373,7 @@ void SentErrServer(char *s) {
     exit(1);
 }
 
-void AddNews(char *topic, char *caption, char *text) {
+void add_news(char *topic, char *caption, char *text) {
 
     FILE *fp1;
     fp1 = fopen(TITLES, "a");
@@ -392,7 +382,7 @@ void AddNews(char *topic, char *caption, char *text) {
 
     fprintf(fp1, "%s\n", topic);
     fclose(fp1);
-    ReadTopics();
+    list_topics();
 
 
 
@@ -408,7 +398,7 @@ void AddNews(char *topic, char *caption, char *text) {
     fprintf(fp2, "%s\n", caption);
     fclose(fp2);
     
-    int nn = ReadNumCap(topic);
+    int nn = amt_caption(topic);
 
     char file_name_2[BUF_SIZE] = "";
     strcat(file_name_2, topic);

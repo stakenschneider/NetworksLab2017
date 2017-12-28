@@ -23,8 +23,10 @@ void *SendHandler(void *socket) {
         text = (char *) malloc(sizeof(char));
         if (text == NULL)
             SentErr("can't malloc");
+
         gets(text);
         rc = send(s, text, 20, 0);
+
         if (rc <= 0)
             SentErr("sent call error");
     }
@@ -67,14 +69,15 @@ int main(void) {
         else {
             int i = 0;
             while (buf[i] != NULL) {
-                if (buf[0] == '^') {
+                if (buf[0] == '^')
                     printf("invalid choose\n");
-                }
+
 
                 if (buf[0] == '#') {
                     printf("closing connection\n");
                     return 0;
                 }
+
                 printf("%c", buf[i]);
                 i++;
             }
