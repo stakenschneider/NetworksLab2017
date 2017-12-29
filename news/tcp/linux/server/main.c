@@ -156,7 +156,7 @@ void *ClientHandler(void *socket) {
                     break;
                 }
                 if (list_caption(buf, (int) socket) == 1)
-                    to_client((int) socket, "\n!ERROR! такой темы нет !ERROR!");
+                    to_client((int) socket, "\n!ERROR! there is no such topic !ERROR!");
 
                 rc = recv((int) socket, buf, BUF_SIZE, 0);
                 if (rc <= 0)
@@ -170,9 +170,9 @@ void *ClientHandler(void *socket) {
                 strcat(pop, buf);
 
                 if (show_text(pop, (int) socket) == 1)
-                    to_client((int) socket, "\n!ERROR! такой новости нет !ERROR!");
-                else
-                    to_client((int) socket, "для выхода в главное меню нажмите '0'");
+                    to_client((int) socket, "\n!ERROR! there is no such news !ERROR!");
+//                else
+//                    to_client((int) socket, "4 main menu '0'");
 
 
                 rc = recv((int) socket, buf, BUF_SIZE, 0);
@@ -189,18 +189,18 @@ void *ClientHandler(void *socket) {
                 char topic[BUF_SIZE];
                 char text[BUF_SIZE];
 
-                to_client((int) socket, "\nназвание темы:");
+                to_client((int) socket, "\nenter topic:");
                 rc = recv((int) socket, topic, BUF_SIZE, 0);
                 if (rc <= 0)
                     SentErrServer(REC);
 
-                to_client((int) socket, "\nзаголовок новости:");
+                to_client((int) socket, "\nenter caption:");
                 rc = recv((int) socket, caption, BUF_SIZE, 0);
                 if (rc <= 0)
                     SentErrServer(REC);
 
 
-                to_client((int) socket, "\nтекст новости:");
+                to_client((int) socket, "\nenter text:");
                 rc = recv((int) socket, text, BUF_SIZE, 0);
                 if (rc <= 0)
                     SentErrServer(REC);
@@ -361,10 +361,9 @@ int amt_caption(char cap[]) {
 
 int *FindBySocket(int socket) {
     int i = 0;
-    for (i; i <= threads; i++) {
+    for (i; i <= threads; i++)
         if (users[i].s1 == socket)
             return i;
-    }
 }
 
 
