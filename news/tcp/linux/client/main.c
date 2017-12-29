@@ -19,14 +19,9 @@ void *SendHandler(void *socket) {
     int s = (int) socket;
     int rc;
     while (1) {
-        char *text;
-        text = (char *) malloc(sizeof(char));
-        if (text == NULL)
-            SentErr("can't malloc");
-
-        gets(text);
-        rc = send(s, text, 20, 0);
-
+        char text[BUF_SIZE] = "";
+        fgets(text, BUF_SIZE, stdin);
+        rc = send(s, text, BUF_SIZE, 0);
         if (rc <= 0)
             SentErr("sent call error");
     }
