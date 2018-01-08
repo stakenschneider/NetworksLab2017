@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <memory.h>
 
 #define SRV_IP "127.0.0.1"
 #define PORT 5001
@@ -19,9 +20,12 @@ void *SendHandler(void *socket) {
     int s = (int) socket;
     int rc;
     while (1) {
-        char text[BUF_SIZE] = "";
-        fgets(text, BUF_SIZE, stdin);
+        char text[BUF_SIZE];
+
+        gets(text);
+        text[strlen(text)] = NULL;
         rc = send(s, text, BUF_SIZE, 0);
+
         if (rc <= 0)
             SentErr("sent call error");
     }

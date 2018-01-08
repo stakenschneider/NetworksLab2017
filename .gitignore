@@ -610,3 +610,4 @@ news/UDP/server/cmake-build-debug/server
 *.cbp
 news/UDP/client/cmake-build-debug/client
 .DS_Store
+tcp/linux/client/cmake-build-debug/client_linux
