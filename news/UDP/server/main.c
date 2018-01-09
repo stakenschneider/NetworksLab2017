@@ -440,7 +440,8 @@ void help(char *reply){
             "\nLIST [theme id] - prints a list of themes from the theme"
             "\nADDN [theme id] [text] - adds piece of news to the theme"
             "\nHELP - prints this help"
-            "\nSHOW [id] - prints the piece of news\n");
+//            "\nSHOW [id] - prints the piece of news\n"
+    );
 }
 
 
